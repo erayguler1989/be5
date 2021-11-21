@@ -18,14 +18,21 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
+import org.apache.lucene.search.similarities.DFISimilarity;
+import org.apache.lucene.search.similarities.Independence;
+import org.apache.lucene.search.similarities.IndependenceChiSquared;
+import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
+
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
-
+ 
 /**
  * This is an example of building a Lucene index for the example corpus.
  *
@@ -37,9 +44,14 @@ public class LuceneBuildIndex {
     public static void main( String[] args ) {
         try {
 
+    		Scanner keyboard = new Scanner(System.in);
+    		System.out.println("BooleanSimilarity için 1, LMJelinekMercerSimilarity için 2, DFISimilarity için 3 giriniz: ");
+    		int secim = keyboard.nextInt();
+        	keyboard.close();
+        	
             // change the following input and output paths to your local ones
-            String pathCorpus = "/home/jiepu/Downloads/example_corpus.gz";
-            String pathIndex = "/home/jiepu/Downloads/example_index_lucene";
+            String pathCorpus = "example_corpus.gz";
+            String pathIndex = "C:\\Users\\user\\git\\LuceneTutorial\\example_index_lucene";
 
             Directory dir = FSDirectory.open( new File( pathIndex ).toPath() );
 
@@ -67,8 +79,19 @@ public class LuceneBuildIndex {
             config.setOpenMode( IndexWriterConfig.OpenMode.CREATE );
             // Lucene's default BM25Similarity stores document field length using a "low-precision" method.
             // Use the BM25SimilarityOriginal to store the original document length values in index.
-            config.setSimilarity( new BM25SimilarityOriginal() );
+            //config.setSimilarity( new BM25SimilarityOriginal() );
 
+            if (secim==1) {
+            	config.setSimilarity( new BooleanSimilarity() );
+            }
+            else if (secim == 2) {
+            	config.setSimilarity(new LMJelinekMercerSimilarity(0.1f) );
+            }
+            else if (secim == 3) {
+            	config.setSimilarity( new DFISimilarity(new IndependenceChiSquared()));
+            }
+            
+			
             IndexWriter ixwriter = new IndexWriter( dir, config );
 
             // This is the field setting for metadata field (no tokenization, searchable, and stored).

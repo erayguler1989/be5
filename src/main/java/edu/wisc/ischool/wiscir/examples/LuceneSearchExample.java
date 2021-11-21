@@ -10,15 +10,23 @@ import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.BM25Similarity;
+
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
+import org.apache.lucene.search.similarities.LMJelinekMercerSimilarity;
+import org.apache.lucene.search.similarities.DFISimilarity;
+import org.apache.lucene.search.similarities.Independence;
+import org.apache.lucene.search.similarities.IndependenceChiSquared;
 
 import java.io.File;
+import java.util.Scanner;
 
 /**
  * This is an example of accessing corpus statistics and corpus-level term statistics.
@@ -30,8 +38,14 @@ public class LuceneSearchExample {
 
     public static void main( String[] args ) {
         try {
+        	
+        	
+    		Scanner keyboard = new Scanner(System.in);
+    		System.out.println("BooleanSimilarity için 1, LMJelinekMercerSimilarity için 2, DFISimilarity için 3 giriniz: ");
+    		int secim = keyboard.nextInt();
+        	keyboard.close();
 
-            String pathIndex = "/home/jiepu/Downloads/example_index_lucene";
+            String pathIndex = "C:\\Users\\user\\git\\LuceneTutorial\\example_index_lucene";
 
             // Analyzer specifies options for text tokenization and normalization (e.g., stemming, stop words removal, case-folding)
             Analyzer analyzer = new Analyzer() {
@@ -58,6 +72,9 @@ public class LuceneSearchExample {
             String qstr = "query reformulation"; // this is the textual search query
             Query query = parser.parse( qstr ); // this is Lucene's query object
 
+
+            
+            
             // Okay, now let's open an index and search for documents
             Directory dir = FSDirectory.open( new File( pathIndex ).toPath() );
             IndexReader index = DirectoryReader.open( dir );
@@ -65,12 +82,58 @@ public class LuceneSearchExample {
             // you need to create a Lucene searcher
             IndexSearcher searcher = new IndexSearcher( index );
 
-            // make sure the similarity class you are using is consistent with those being used for indexing
-            searcher.setSimilarity( new BM25SimilarityOriginal() );
 
+            
+            // make sure the similarity class you are using is consistent with those being used for indexing
+            //searcher.setSimilarity( new BM25SimilarityOriginal() );
+            //searcher.setSimilarity( new BooleanSimilarity() );
+            //searcher.setSimilarity( new LMJelinekMercerSimilarity(0.1f));
+            /**searcher.setSimilarity( new DFISimilarity(new Independence() {
+				
+				@Override
+				public String toString() {
+					// TODO Auto-generated method stub
+					return null;
+				}
+				
+				@Override
+				public double score(double freq, double expected) {
+					// TODO Auto-generated method stub
+					return 1;
+				}
+			}));
+            */
+            //searcher.setSimilarity(new DFISimilarity(new IndependenceChiSquared()));
+            
+            if (secim==1) {
+            	searcher.setSimilarity( new BooleanSimilarity() );
+            	System.out.println("BooleanSimilarity için sonuçlar");
+            }
+            else if (secim == 2) {
+            	searcher.setSimilarity(new LMJelinekMercerSimilarity(0.1f) );
+            	System.out.println("LMJelinekMercerSimilarity için sonuçlar");
+            }
+            else if (secim == 3) {
+            	searcher.setSimilarity( new DFISimilarity(new IndependenceChiSquared()));
+            	System.out.println("DFISimilarity için sonuçlar");
+            }
+
+            //Explanation explain = searcher.explain(query,10 );
+            //System.out.print(explain);
+            
             int top = 10; // Let's just retrieve the talk 10 results
             TopDocs docs = searcher.search( query, top ); // retrieve the top 10 results; retrieved results are stored in TopDocs
 
+            
+
+            ScoreDoc[] hits = docs.scoreDocs;
+            for(ScoreDoc hit : hits)
+              {
+              System.out.println(searcher.explain(query, hit.doc)); // Filter won't affect this either way.
+              }
+            
+            
+            
             System.out.printf( "%-10s%-20s%-10s%s\n", "Rank", "DocNo", "Score", "Title" );
             int rank = 1;
             for ( ScoreDoc scoreDoc : docs.scoreDocs ) {
@@ -78,7 +141,8 @@ public class LuceneSearchExample {
                 double score = scoreDoc.score;
                 String docno = LuceneUtils.getDocno( index, "docno", docid );
                 String title = LuceneUtils.getDocno( index, "title", docid );
-                System.out.printf( "%-10d%-20s%-10.4f%s\n", rank, docno, score, title );
+
+                System.out.printf( "%-10d%-20s%-10.4f%s\n", rank, docno, score, title);
                 rank++;
             }
 
